@@ -1,0 +1,58 @@
+# Render Infrastructure-as-Code Blueprint
+# Project: Job Description Skill Ontology & Requirement Extraction System
+# Developers: Mahisa S, Kaviya P
+
+services:
+  # =========================================================================
+  # Service 1: Python FastAPI Web Service (Backend API & Unified Frontend)
+  # =========================================================================
+  # Serves the complete FastAPI REST API (/api/...) and the production UI (/)
+  # Runs smoothly on Render's Free tier with 0 CORS issues.
+  # =========================================================================
+  - type: web
+    name: job-skill-ontology-backend
+    runtime: python
+    region: oregon
+    plan: free
+    branch: main
+    buildCommand: pip install --upgrade pip && pip install -r backend/requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.8
+      - key: PYTHONPATH
+        value: .
+      - key: CORS_ORIGINS
+        value: "*"
+      # Optional: Attach a Render Persistent Disk and set DATA_DIR to preserve data across restarts
+      # - key: DATA_DIR
+      #   value: /var/data
+      # Optional: External search verification API key
+      # - key: GOOGLE_SEARCH_API_KEY
+      #   sync: false
+
+  # =========================================================================
+  # Service 2 (Optional): Standalone Frontend Static Site
+  # =========================================================================
+  # Use this if you choose to host the React/Vite frontend as a separate
+  # static site on Render instead of using the unified backend service.
+  # =========================================================================
+  - type: static
+    name: job-skill-ontology-frontend
+    region: oregon
+    plan: free
+    branch: main
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: job-skill-ontology-backend
+          property: host
